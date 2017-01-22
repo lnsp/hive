@@ -1,5 +1,6 @@
-FROM golang:onbuild
+FROM golang:alpine
 
+ENV GODEBUG "netdns=cgo"
 RUN mkdir -p "$GOPATH/src/github.com/lnsp/hive/examples/randomcalc/runtime"
 ADD . "$GOPATH/src/github.com/lnsp/hive/examples/randomcalc/runtime"
 
