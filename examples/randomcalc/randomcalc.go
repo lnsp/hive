@@ -26,7 +26,7 @@ func calculateHandler(request interface{}) (interface{}, error) {
 	}
 	resp := addResponse.(*addition.AddResponse)
 
-	return CalculateResponse{Result: resp.Result}, nil
+	return &CalculateResponse{Result: resp.Result}, nil
 }
 
 func init() {
