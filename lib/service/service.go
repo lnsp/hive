@@ -54,21 +54,19 @@ func New(name, version string) Service {
 
 // Send a request to the service.
 func (service Service) Send(name string, request interface{}) (interface{}, error) {
-	log.Debug("initiating request to service", service.Name, "->", name)
+	log.Info("initiating request to service", service.Name, "->", name)
 	method, found := service.Methods[name]
 	if !found {
 		return nil, errors.New("method not found")
 	}
-	log.Debug("found valid service method")
 
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("marshaled the request successful")
 
 	url := service.Protocol + "://" + service.DNSName + service.Socket + "/" + method.Name
-	log.Debug("request url is:", url)
+	log.Info("request url is: ", url)
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonRequest))
 	if err != nil {
@@ -86,7 +84,6 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 	if err != nil {
 		return nil, errors.New("failed to parse response: " + err.Error())
 	}
-	log.Debug("read and parsed body, got", method.ResponseType)
 
 	return response, nil
 }
@@ -139,7 +136,7 @@ func newMethodHandler(method Method) func(http.ResponseWriter, *http.Request) {
 			http.Error(w, "invalid json request: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		log.Debug("created request object of type", method.RequestType)
+		log.Debug("created request object of type ", method.RequestType)
 
 		response, err := method.handle(request)
 		if err != nil {
@@ -158,8 +155,6 @@ func newMethodHandler(method Method) func(http.ResponseWriter, *http.Request) {
 			http.Error(w, "failed to write response: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		log.Debug("packed and written JSON response")
 	}
 }
 
