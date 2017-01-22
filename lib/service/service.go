@@ -60,7 +60,7 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 		return nil, err
 	}
 
-	url := service.Protocol + "://" + service.DNSName + "/" + method.Name
+	url := service.Protocol + "://" + service.DNSName + service.Socket + "/" + method.Name
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonRequest))
 	if err != nil {
