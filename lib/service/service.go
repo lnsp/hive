@@ -74,6 +74,7 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 	}
 	defer resp.Body.Close()
 
+	log.Debug("received response from service ", service.DNSName)
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.New("failed service request: " + err.Error())
@@ -84,6 +85,7 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 	if err != nil {
 		return nil, errors.New("failed to parse response: " + err.Error())
 	}
+	log.Debug("generated ", method.ResponseType.String(), " from response")
 
 	return response, nil
 }
