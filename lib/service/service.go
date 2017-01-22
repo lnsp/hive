@@ -5,11 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"log"
 	"net/http"
+	"os"
 	"reflect"
 	"time"
+
+	"github.com/Sirupsen/logrus"
 )
+
+var log = logrus.New()
+
+func init() {
+	log.Out = os.Stderr
+	log.Level = logrus.DebugLevel
+}
 
 // A microservice method.
 type Method struct {
@@ -45,22 +54,21 @@ func New(name, version string) Service {
 
 // Send a request to the service.
 func (service Service) Send(name string, request interface{}) (interface{}, error) {
+	log.Debug("initiating request to service", service.Name, "->", name)
 	method, found := service.Methods[name]
 	if !found {
 		return nil, errors.New("method not found")
 	}
-
-	requestValue := reflect.ValueOf(request)
-	if requestValue.Type() != method.RequestType {
-		return nil, errors.New("invalid request type")
-	}
+	log.Debug("found valid service method")
 
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
+	log.Debug("marshaled the request successful")
 
 	url := service.Protocol + "://" + service.DNSName + service.Socket + "/" + method.Name
+	log.Debug("request url is:", url)
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonRequest))
 	if err != nil {
@@ -73,13 +81,14 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 		return nil, errors.New("failed service request: " + err.Error())
 	}
 
-	object := reflect.New(method.ResponseType).Interface()
-	err = json.Unmarshal(body, object)
+	response := reflect.New(method.ResponseType).Interface()
+	err = json.Unmarshal(body, response)
 	if err != nil {
 		return nil, errors.New("failed to parse response: " + err.Error())
 	}
+	log.Debug("read and parsed body, got", method.ResponseType)
 
-	return object, nil
+	return response, nil
 }
 
 // Register a service method.
@@ -98,6 +107,7 @@ func (service Service) Run() {
 	for name, method := range service.Methods {
 		mux.HandleFunc("/"+name, newMethodHandler(method))
 	}
+	log.Info("register all methods successful")
 
 	// init server
 	server := &http.Server{
@@ -107,6 +117,7 @@ func (service Service) Run() {
 		WriteTimeout:   service.Timeout,
 		MaxHeaderBytes: 1 << 20,
 	}
+	log.Info("starting up service")
 
 	// startup
 	log.Fatal(server.ListenAndServe())
@@ -115,6 +126,7 @@ func (service Service) Run() {
 // Create a new method handler.j
 func newMethodHandler(method Method) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Debug("got request for /" + method.Name)
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "failed to read body: "+err.Error(), http.StatusBadRequest)
@@ -127,6 +139,7 @@ func newMethodHandler(method Method) func(http.ResponseWriter, *http.Request) {
 			http.Error(w, "invalid json request: "+err.Error(), http.StatusBadRequest)
 			return
 		}
+		log.Debug("created request object of type", method.RequestType)
 
 		response, err := method.handle(request)
 		if err != nil {
@@ -145,6 +158,8 @@ func newMethodHandler(method Method) func(http.ResponseWriter, *http.Request) {
 			http.Error(w, "failed to write response: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		log.Debug("packed and written JSON response")
 	}
 }
 
