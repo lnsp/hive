@@ -1,8 +1,8 @@
 package randomcalc
 
 import (
-	"github.com/lnsp/hive/examples/calculator/addition"
-	"github.com/lnsp/hive/examples/calculator/subtraction"
+	"github.com/lnsp/hive/examples/addition"
+	"github.com/lnsp/hive/examples/subtraction"
 	"github.com/lnsp/hive/lib/discovery"
 	"github.com/lnsp/hive/lib/service"
 )
