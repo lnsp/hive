@@ -31,13 +31,13 @@ func calculateHandler(request interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		response.Result = addResponse.(addition.AddResponse).Result
+		response.Result = addResponse.(*addition.AddResponse).Result
 	} else {
 		subResponse, err := Discovery.Send("subtraction", "subtract", subtraction.SubtractRequest{A: req.A, B: req.B})
 		if err != nil {
 			return nil, err
 		}
-		response.Result = subResponse.(subtraction.SubtractResponse).Result
+		response.Result = subResponse.(*subtraction.SubtractResponse).Result
 	}
 
 	return &response, nil
