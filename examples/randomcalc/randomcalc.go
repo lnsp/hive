@@ -31,6 +31,7 @@ func calculateHandler(request interface{}) (interface{}, error) {
 
 func init() {
 	Service = service.New("randomcalc", "0.1.0")
+	Service.Socket = ":8081"
 	Calculate = service.NewMethod("calculate", CalculateRequest{}, CalculateResponse{}, calculateHandler)
 
 	Service.Register(Calculate)

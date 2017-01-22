@@ -24,6 +24,8 @@ func addHandler(request interface{}) (interface{}, error) {
 
 func init() {
 	Service = service.New("addition", "0.1.0")
+	Service.Socket = ":8080"
+
 	Add = service.NewMethod("add", AddRequest{}, AddResponse{}, addHandler)
 
 	Service.Register(Add)
