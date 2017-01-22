@@ -22,6 +22,7 @@ type Method struct {
 // A microservice.
 type Service struct {
 	Name     string            `json:"name"`
+	DNSName  string            `json:"dnsname"`
 	Version  string            `json:"version"`
 	Methods  map[string]Method `json:"methods"`
 	Protocol string            `json:"protocol"`
@@ -33,6 +34,7 @@ type Service struct {
 func New(name, version string) Service {
 	return Service{
 		Name:     name,
+		DNSName:  name,
 		Version:  version,
 		Methods:  make(map[string]Method),
 		Protocol: "http",
@@ -58,7 +60,7 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 		return nil, err
 	}
 
-	url := service.Protocol + "://" + service.Name + "/" + method.Name
+	url := service.Protocol + "://" + service.DNSName + "/" + method.Name
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonRequest))
 	if err != nil {
