@@ -1,5 +1,11 @@
 # Hive
-Simple and fast microservice toolkit.
+**Simple and fast** microservice toolkit.
+
+Made for **modern software architecture**.
+
+Works insanely well with the **new Docker swarm-mode (v1.12+)**.
+
+Easy-to-use **CLI assistant** for maximum productivity.
 
 ## License
 Copyright 2017 Lennart Espe
