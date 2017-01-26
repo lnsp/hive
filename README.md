@@ -1,12 +1,24 @@
 # Hive
 **Simple and fast** microservice toolkit.
 
-Made for **modern software architecture**.
+Made for **modern software architectures**.
 
 Works insanely well with the **new Docker swarm-mode (v1.12+)**.
 
 Easy-to-use **CLI assistant** for maximum productivity.
 
+## Getting started
+```bash
+$ go get github.com/lnsp/hive/cmd/hive
+$ hive new
+Enter service name: skynet
+Enter service path: github.com/cyberdyne/skynet
+...
+skynet up and ready.
+$ cd $GOPATH/src/github.com/cyberdyne/skynet/runtime
+$ docker build -t skynet:latest .
+$ docker service create --name takeover --network=backend --replicas=1000 skynet:latest
+```
 ## License
 Copyright 2017 Lennart Espe
 
