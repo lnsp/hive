@@ -15,6 +15,15 @@ Enter service name: skynet
 Enter service path: github.com/cyberdyne/skynet
 ...
 skynet up and ready.
+$ hive about github.com/cyberdyne/skynet
+{
+  "name": "skynet",
+  "dnsname": "skynet",
+  "version": "1.0.0",
+  "protocol": "http",
+  "methods": {
+    "SpawnRobot": {
+...
 $ cd $GOPATH/src/github.com/cyberdyne/skynet/runtime
 $ docker build -t skynet:latest .
 $ docker service create --name takeover --network=backend --replicas=1000 skynet:latest
