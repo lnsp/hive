@@ -15,16 +15,20 @@ import (
 
 const (
 	maxLineLength = 1024
+	autogenPath   = "/tmp/hive/autogen"
 	templatePath  = "/tmp/hive/templates"
 	templateRepo  = "https://github.com/lnsp/hive-templates"
 	updateRepo    = "pull"
 	copyRepo      = "clone"
 	gitPath       = "git"
+	goPath        = "go"
+	goRunArg      = "run"
 	serviceFile   = "service.go"
 	methodFile    = "method.go"
 	runtimeFile   = "runtime.go"
 	runtimePath   = "runtime"
 	dockerFile    = "Dockerfile"
+	aboutFile     = "about.go"
 )
 
 var srcPath = filepath.Join(os.Getenv("GOPATH"), "src")
@@ -46,6 +50,52 @@ type methodHeader struct {
 type serviceHeader struct {
 	Name, Path, Version string
 	Methods             []methodHeader
+}
+
+func updateTemplates() error {
+	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		err = os.MkdirAll(templatePath, 0744)
+		if err != nil {
+			return err
+		}
+		// Download templates
+		cloneCmd := exec.Command(gitPath, copyRepo, templateRepo, templatePath)
+		cloneCmd.Stderr = os.Stderr
+		err = cloneCmd.Run()
+		if err != nil {
+			return err
+		}
+	}
+
+	updateCmd := exec.Command(gitPath, updateRepo)
+	updateCmd.Dir = templatePath
+	updateCmd.Stderr = os.Stderr
+	err := updateCmd.Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func copyFile(srcPath, destPath string) error {
+	srcFile, err := os.Create(srcPath)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	if _, err = io.Copy(destFile, srcFile); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func actionNew(c *cli.Context) error {
@@ -93,33 +143,8 @@ func actionNew(c *cli.Context) error {
 		}
 	}
 
-	fmt.Println("Updating service templates ...")
+	updateTemplates()
 
-	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
-		err = os.MkdirAll(templatePath, 0744)
-		if err != nil {
-			return err
-		}
-		// Download templates
-		cloneCmd := exec.Command(gitPath, copyRepo, templateRepo, templatePath)
-		cloneCmd.Stdout = os.Stdout
-		cloneCmd.Stderr = os.Stderr
-		err = cloneCmd.Run()
-		if err != nil {
-			return err
-		}
-	}
-
-	updateCmd := exec.Command(gitPath, updateRepo)
-	updateCmd.Dir = templatePath
-	updateCmd.Stdout = os.Stdout
-	updateCmd.Stderr = os.Stderr
-	err = updateCmd.Run()
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Loading templates ...")
 	serviceTemplate := template.Must(template.ParseFiles(
 		filepath.Join(templatePath, serviceFile),
 	))
@@ -137,85 +162,58 @@ func actionNew(c *cli.Context) error {
 		return nil
 	}
 
-	err = os.MkdirAll(filepath.Join(
+	if err := os.MkdirAll(filepath.Join(
 		srcPath,
 		service.Path,
-	), 0744)
-	if err != nil {
+	), 0744); err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Join(
+	if err := os.MkdirAll(filepath.Join(
 		srcPath,
 		service.Path,
 		runtimePath,
-	), 0744)
-	if err != nil {
+	), 0744); err != nil {
 		return err
 	}
 
-	generatedService, err := os.Create(filepath.Join(
+	if err := writeTemplateToFile(filepath.Join(
 		srcPath,
 		service.Path,
 		serviceFile,
-	))
-	if err != nil {
+	), serviceTemplate, service); err != nil {
 		return err
 	}
-	defer generatedService.Close()
-
-	serviceTemplate.Execute(generatedService, service)
 
 	for _, method := range service.Methods {
-		methodFileName := strings.ToLower(method.Name) + ".go"
-		generatedMethod, err := os.Create(filepath.Join(
+		if err := writeTemplateToFile(filepath.Join(
 			srcPath,
 			service.Path,
-			methodFileName,
-		))
-		if err != nil {
+			strings.ToLower(method.Name)+".go",
+		), methodTemplate, method); err != nil {
 			return err
 		}
-		defer generatedMethod.Close()
-		methodTemplate.Execute(generatedMethod, method)
 	}
 
-	generatedRuntime, err := os.Create(filepath.Join(
+	if err := writeTemplateToFile(filepath.Join(
 		srcPath,
 		service.Path,
 		runtimePath,
 		runtimeFile,
-	))
-	if err != nil {
+	), runtimeTemplate, service); err != nil {
 		return err
 	}
-	defer generatedRuntime.Close()
 
-	runtimeTemplate.Execute(generatedRuntime, service)
-
-	srcDockerfile, err := os.Create(filepath.Join(
+	if err := copyFile(filepath.Join(
 		templatePath,
 		runtimePath,
 		dockerFile,
-	))
-	if err != nil {
-		return err
-	}
-	defer srcDockerfile.Close()
-
-	copiedDockerfile, err := os.Create(filepath.Join(
+	), filepath.Join(
 		srcPath,
 		service.Path,
 		runtimePath,
 		dockerFile,
-	))
-	if err != nil {
-		return err
-	}
-	defer copiedDockerfile.Close()
-
-	_, err = io.Copy(copiedDockerfile, srcDockerfile)
-	if err != nil {
+	)); err != nil {
 		return err
 	}
 
@@ -223,7 +221,58 @@ func actionNew(c *cli.Context) error {
 	return nil
 }
 
+func writeTemplateToFile(path string, tmpl *template.Template, val interface{}) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	err = tmpl.Execute(file, val)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func actionAbout(c *cli.Context) error {
+	err := updateTemplates()
+	if err != nil {
+		return err
+	}
+
+	service := struct {
+		Name, Path string
+	}{}
+	service.Name = filepath.Base(c.Args()[0])
+	service.Path = c.Args()[0]
+
+	// Store generated about file
+	aboutTemplate := template.Must(template.ParseFiles(
+		filepath.Join(templatePath, aboutFile),
+	))
+
+	// Create autogen directory
+	err = os.MkdirAll(autogenPath, 0744)
+	if err != nil {
+		return err
+	}
+
+	// Write about file
+	if err := writeTemplateToFile(filepath.Join(
+		autogenPath,
+		aboutFile,
+	), aboutTemplate, service); err != nil {
+		return err
+	}
+
+	// Run "go run"
+	runCmd := exec.Command(goPath, goRunArg, filepath.Join(autogenPath, aboutFile))
+	runCmd.Stdout = os.Stdout
+	if err := runCmd.Run(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -248,13 +297,13 @@ func main() {
 			Usage:   "Create a new Hive microservice",
 			Action:  actionNew,
 		},
-		/*
-			{
-				Name:    "about",
-				Aliases: []string{"a"},
-				Usage:   "Display information about the service",
-				Action:  actionAbout,
-			},
+
+		{
+			Name:    "about",
+			Aliases: []string{"a"},
+			Usage:   "Display information about the service",
+			Action:  actionAbout,
+		}, /*
 			{
 				Name:    "build",
 				Aliases: []string{"b"},
