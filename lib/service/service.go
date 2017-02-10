@@ -92,6 +92,9 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 
 // Register a service method.
 func (service Service) Register(method Method) {
+	if service.Methods == nil {
+		service.Methods = make(map[string]Method)
+	}
 	service.Methods[method.Name] = method
 }
 
