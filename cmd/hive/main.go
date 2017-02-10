@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -238,7 +239,7 @@ func writeTemplateToFile(path string, tmpl *template.Template, val interface{}) 
 func actionAbout(c *cli.Context) error {
 	err := updateTemplates()
 	if err != nil {
-		return err
+		return errors.New("failed to update templates: " + err.Error())
 	}
 
 	service := struct {
@@ -255,22 +256,22 @@ func actionAbout(c *cli.Context) error {
 	// Create autogen directory
 	err = os.MkdirAll(autogenPath, 0744)
 	if err != nil {
-		return err
+		return errors.New("failed to create directory: " + err.Error())
 	}
 
+	generatedName := filepath.Join(autogenPath, service.Name+".go")
+
 	// Write about file
-	if err := writeTemplateToFile(filepath.Join(
-		autogenPath,
-		aboutFile,
-	), aboutTemplate, service); err != nil {
-		return err
+	if err := writeTemplateToFile(generatedName, aboutTemplate, service); err != nil {
+		return errors.New("failed to write template: " + err.Error())
 	}
 
 	// Run "go run"
-	runCmd := exec.Command(goPath, goRunArg, filepath.Join(autogenPath, aboutFile))
+	runCmd := exec.Command(goPath, goRunArg, generatedName)
 	runCmd.Stdout = os.Stdout
+	runCmd.Stderr = os.Stderr
 	if err := runCmd.Run(); err != nil {
-		return err
+		return errors.New("execution failed: " + err.Error())
 	}
 
 	return nil
@@ -302,7 +303,14 @@ func main() {
 			Name:    "about",
 			Aliases: []string{"a"},
 			Usage:   "Display information about the service",
-			Action:  actionAbout,
+			Action: func(c *cli.Context) error {
+				err := actionAbout(c)
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				return nil
+			},
 		}, /*
 			{
 				Name:    "build",
