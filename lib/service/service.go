@@ -52,6 +52,17 @@ func New(name, version string) Service {
 	}
 }
 
+func sendError(w http.ResponseWriter, message string, status int) {
+	json, err := json.Marshal(struct {
+		Error string
+	}{Error: message})
+	w.WriteHeader(status)
+	_, err = w.Write(json)
+	if err != nil {
+		http.Error(w, "failed to write error: "+err.Error(), http.StatusInternalServerError)
+	}
+}
+
 // Send a request to the service.
 func (service Service) Send(name string, request interface{}) (interface{}, error) {
 	log.Info("initiating request to service", service.Name, "->", name)
@@ -59,34 +70,28 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 	if !found {
 		return nil, errors.New("method not found")
 	}
-
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
-
 	url := service.Protocol + "://" + service.DNSName + service.Socket + "/" + method.Name
 	log.Info("request url is: ", url)
-
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonRequest))
-	if err != nil {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		return nil, errors.New("failed service request: " + err.Error())
 	}
 	defer resp.Body.Close()
-
 	log.Debug("received response from service ", service.DNSName)
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.New("failed service request: " + err.Error())
 	}
-
 	response := reflect.New(method.ResponseType).Interface()
 	err = json.Unmarshal(body, response)
 	if err != nil {
 		return nil, errors.New("failed to parse response: " + err.Error())
 	}
 	log.Debug("generated ", method.ResponseType.String(), " from response")
-
 	return response, nil
 }
 
@@ -104,13 +109,11 @@ func (service Service) Run() {
 	service.Register(NewMethod("", new(struct{}), new(Service), func(interface{}) (interface{}, error) {
 		return &service, nil
 	}))
-
 	// add all methods to server mux
 	for name, method := range service.Methods {
 		mux.HandleFunc("/"+name, newMethodHandler(method))
 	}
 	log.Info("register all methods successful")
-
 	// init server
 	server := &http.Server{
 		Addr:           service.Socket,
@@ -120,7 +123,6 @@ func (service Service) Run() {
 		MaxHeaderBytes: 1 << 20,
 	}
 	log.Info("starting up service")
-
 	// startup
 	log.Fatal(server.ListenAndServe())
 }
@@ -131,33 +133,29 @@ func newMethodHandler(method Method) func(http.ResponseWriter, *http.Request) {
 		log.Debug("got request for /" + method.Name)
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "failed to read body: "+err.Error(), http.StatusBadRequest)
+			sendError(w, "failed to read body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-
 		request := reflect.New(method.RequestType).Interface()
 		err = json.Unmarshal(body, request)
 		if err != nil {
-			http.Error(w, "invalid json request: "+err.Error(), http.StatusBadRequest)
+			sendError(w, "invalid json request: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 		log.Debug("created request object of type ", method.RequestType)
-
 		response, err := method.handle(request)
 		if err != nil {
-			http.Error(w, "response error: "+err.Error(), http.StatusInternalServerError)
+			sendError(w, "response error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-
 		json, err := json.Marshal(response)
 		if err != nil {
-			http.Error(w, "failed to pack json response: "+err.Error(), http.StatusInternalServerError)
+			sendError(w, "failed to pack json response: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-
 		_, err = w.Write(json)
 		if err != nil {
-			http.Error(w, "failed to write response: "+err.Error(), http.StatusInternalServerError)
+			sendError(w, "failed to write response: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
