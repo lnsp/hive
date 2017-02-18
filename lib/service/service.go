@@ -63,6 +63,21 @@ func sendError(w http.ResponseWriter, message string, status int) {
 	}
 }
 
+// LogInfo logs an message of log level Info.
+func (service Service) LogInfo(args ...interface{}) {
+	log.Info(args...)
+}
+
+// LogDebug logs an message of log level Debug.
+func (service Service) LogDebug(args ...interface{}) {
+	log.Debug(args...)
+}
+
+// LogError logs an message of log level Error.
+func (service Service) LogError(args ...interface{}) {
+	log.Error(args...)
+}
+
 // Send a request to the service.
 func (service Service) Send(name string, request interface{}) (interface{}, error) {
 	log.Info("initiating request to service", service.Name, "->", name)
