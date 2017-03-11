@@ -81,6 +81,7 @@ func New(name, version string) Service {
 		Protocol: "http",
 		Socket:   ":80",
 		Timeout:  time.Second * 10,
+		Context:  make(map[string]interface{}),
 	}
 }
 
