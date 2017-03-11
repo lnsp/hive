@@ -20,23 +20,55 @@ func init() {
 	log.Level = logrus.DebugLevel
 }
 
-// A microservice method.
-type Method struct {
+type Method interface {
+	GetRequestType() reflect.Type
+	GetResponseType() reflect.Type
+	GetName() string
+	HandleRequest(*Service, interface{}) (interface{}, error)
+}
+
+type basicMethod struct {
 	RequestType  reflect.Type `json:"request"`
 	ResponseType reflect.Type `json:"response"`
 	Name         string       `json:"name"`
 	handle       func(interface{}) (interface{}, error)
 }
 
+func (b basicMethod) GetRequestType() reflect.Type {
+	return b.RequestType
+}
+
+func (b basicMethod) GetResponseType() reflect.Type {
+	return b.ResponseType
+}
+
+func (b basicMethod) GetName() string {
+	return b.Name
+}
+
+func (b basicMethod) HandleRequest(service *Service, req interface{}) (interface{}, error) {
+	return b.handle(req)
+}
+
+type contextualMethod struct {
+	basicMethod
+	contextualHandle func(*Service, interface{}) (interface{}, error)
+}
+
+func (c contextualMethod) HandleRequest(service *Service, req interface{}) (interface{}, error) {
+	return c.contextualHandle(service, req)
+}
+
 // A microservice.
 type Service struct {
-	Name     string            `json:"name"`
-	DNSName  string            `json:"dnsname"`
-	Version  string            `json:"version"`
-	Methods  map[string]Method `json:"methods"`
-	Protocol string            `json:"protocol"`
-	Socket   string            `json:"socket"`
-	Timeout  time.Duration     `json:"timeout"`
+	Name     string                 `json:"name"`
+	DNSName  string                 `json:"dnsname"`
+	Version  string                 `json:"version"`
+	Methods  map[string]Method      `json:"methods"`
+	Protocol string                 `json:"protocol"`
+	Socket   string                 `json:"socket"`
+	Timeout  time.Duration          `json:"timeout"`
+	Context  map[string]interface{} `json:"context"`
 }
 
 // Create a new service.
@@ -89,7 +121,7 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 	if err != nil {
 		return nil, err
 	}
-	url := service.Protocol + "://" + service.DNSName + service.Socket + "/" + method.Name
+	url := service.Protocol + "://" + service.DNSName + service.Socket + "/" + method.GetName()
 	log.Info("request url is: ", url)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonRequest))
 	if err != nil || resp.StatusCode != http.StatusOK {
@@ -101,12 +133,12 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 	if err != nil {
 		return nil, errors.New("failed service request: " + err.Error())
 	}
-	response := reflect.New(method.ResponseType).Interface()
+	response := reflect.New(method.GetResponseType()).Interface()
 	err = json.Unmarshal(body, response)
 	if err != nil {
 		return nil, errors.New("failed to parse response: " + err.Error())
 	}
-	log.Debug("generated ", method.ResponseType.String(), " from response")
+	log.Debug("generated ", method.GetResponseType().String(), " from response")
 	return response, nil
 }
 
@@ -115,7 +147,7 @@ func (service Service) Register(method Method) {
 	if service.Methods == nil {
 		service.Methods = make(map[string]Method)
 	}
-	service.Methods[method.Name] = method
+	service.Methods[method.GetName()] = method
 }
 
 // Run the service.
@@ -126,7 +158,7 @@ func (service Service) Run() {
 	}))
 	// add all methods to server mux
 	for name, method := range service.Methods {
-		mux.HandleFunc("/"+name, newMethodHandler(method))
+		mux.HandleFunc("/"+name, newMethodHandler(&service, method))
 	}
 	log.Info("register all methods successful")
 	// init server
@@ -143,22 +175,22 @@ func (service Service) Run() {
 }
 
 // Create a new method handler.j
-func newMethodHandler(method Method) func(http.ResponseWriter, *http.Request) {
+func newMethodHandler(service *Service, method Method) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Debug("got request for /" + method.Name)
+		log.Debug("got request for /" + method.GetName())
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			sendError(w, "failed to read body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		request := reflect.New(method.RequestType).Interface()
+		request := reflect.New(method.GetRequestType()).Interface()
 		err = json.Unmarshal(body, request)
 		if err != nil {
 			sendError(w, "invalid json request: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		log.Debug("created request object of type ", method.RequestType)
-		response, err := method.handle(request)
+		log.Debug("created request object of type ", method.GetRequestType())
+		response, err := method.HandleRequest(service, request)
 		if err != nil {
 			sendError(w, "response error: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -178,10 +210,21 @@ func newMethodHandler(method Method) func(http.ResponseWriter, *http.Request) {
 
 // Create a new method.
 func NewMethod(name string, requestType interface{}, responseType interface{}, handler func(interface{}) (interface{}, error)) Method {
-	return Method{
+	return basicMethod{
 		Name:         name,
 		RequestType:  reflect.TypeOf(requestType),
 		ResponseType: reflect.TypeOf(responseType),
 		handle:       handler,
+	}
+}
+
+func NewContextualMethod(name string, requestType interface{}, responseType interface{}, handler func(*Service, interface{}) (interface{}, error)) Method {
+	return contextualMethod{
+		basicMethod: basicMethod{
+			Name:         name,
+			RequestType:  reflect.TypeOf(requestType),
+			ResponseType: reflect.TypeOf(responseType),
+		},
+		contextualHandle: handler,
 	}
 }
