@@ -61,27 +61,29 @@ func (c contextualMethod) HandleRequest(service *Service, req interface{}) (inte
 
 // A microservice.
 type Service struct {
-	Name     string                 `json:"name"`
-	DNSName  string                 `json:"dnsname"`
-	Version  string                 `json:"version"`
-	Methods  map[string]Method      `json:"methods"`
-	Protocol string                 `json:"protocol"`
-	Socket   string                 `json:"socket"`
-	Timeout  time.Duration          `json:"timeout"`
-	Context  map[string]interface{} `json:"context"`
+	Name         string                 `json:"name"`
+	DNSName      string                 `json:"dnsname"`
+	Version      string                 `json:"version"`
+	Methods      map[string]Method      `json:"methods"`
+	Protocol     string                 `json:"protocol"`
+	Socket       string                 `json:"socket"`
+	Timeout      time.Duration          `json:"timeout"`
+	Context      map[string]interface{} `json:"context"`
+	ForwardLocal bool                   `json:"forwardLocal"`
 }
 
 // Create a new service.
 func New(name, version string) Service {
 	return Service{
-		Name:     name,
-		DNSName:  name,
-		Version:  version,
-		Methods:  make(map[string]Method),
-		Protocol: "http",
-		Socket:   ":80",
-		Timeout:  time.Second * 10,
-		Context:  make(map[string]interface{}),
+		Name:         name,
+		DNSName:      name,
+		Version:      version,
+		Methods:      make(map[string]Method),
+		Protocol:     "http",
+		Socket:       ":80",
+		Timeout:      time.Second * 10,
+		Context:      make(map[string]interface{}),
+		ForwardLocal: false,
 	}
 }
 
@@ -113,6 +115,10 @@ func (service Service) LogError(args ...interface{}) {
 
 // Send a request to the service.
 func (service Service) Send(name string, request interface{}) (interface{}, error) {
+	if service.ForwardLocal {
+		return service.Methods[name].HandleRequest(&service, request)
+	}
+
 	log.Info("initiating request to service", service.Name, "->", name)
 	method, found := service.Methods[name]
 	if !found {
