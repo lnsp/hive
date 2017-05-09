@@ -131,8 +131,11 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 	url := service.Protocol + "://" + service.DNSName + service.Socket + "/" + method.GetName()
 	log.Info("request url is: ", url)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonRequest))
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if err != nil {
 		return nil, errors.New("failed service request: " + err.Error())
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("bad request status: " + resp.Status)
 	}
 	defer resp.Body.Close()
 	log.Debug("received response from service ", service.DNSName)
