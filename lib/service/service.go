@@ -134,14 +134,20 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 	if err != nil {
 		return nil, errors.New("failed service request: " + err.Error())
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("bad request status: " + resp.Status)
-	}
 	defer resp.Body.Close()
 	log.Debug("received response from service ", service.DNSName)
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.New("failed service request: " + err.Error())
+	}
+	if resp.StatusCode != http.StatusOK {
+		decoded := struct {
+			Error string
+		}{}
+		if err := json.Unmarshal(body, &decoded); err != nil {
+			return nil, errors.New("bad request status: " + resp.Status)
+		}
+		return nil, errors.New("bad request: " + decoded.Error)
 	}
 	response := reflect.New(method.GetResponseType()).Interface()
 	err = json.Unmarshal(body, response)
