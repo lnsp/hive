@@ -25,10 +25,12 @@ const (
 	goPath        = "go"
 	goRunArg      = "run"
 	serviceFile   = "service.go"
+	serviceFolder = "service"
 	methodFile    = "method.go"
+	methodFolder  = "methods"
 	runtimeFile   = "runtime.go"
-	runtimePath   = "runtime"
 	dockerFile    = "Dockerfile"
+	aboutFolder   = "about"
 	aboutFile     = "about.go"
 )
 
@@ -147,15 +149,15 @@ func actionNew(c *cli.Context) error {
 	updateTemplates()
 
 	serviceTemplate := template.Must(template.ParseFiles(
-		filepath.Join(templatePath, serviceFile),
+		filepath.Join(templatePath, serviceFolder, serviceFile),
 	))
 
 	methodTemplate := template.Must(template.ParseFiles(
-		filepath.Join(templatePath, methodFile),
+		filepath.Join(templatePath, methodFolder, methodFile),
 	))
 
 	runtimeTemplate := template.Must(template.ParseFiles(
-		filepath.Join(templatePath, runtimePath, runtimeFile),
+		filepath.Join(templatePath, runtimeFile),
 	))
 
 	if _, err := os.Stat(filepath.Join(srcPath, service.Path)); err == nil {
@@ -163,6 +165,7 @@ func actionNew(c *cli.Context) error {
 		return nil
 	}
 
+	// Create base path
 	if err := os.MkdirAll(filepath.Join(
 		srcPath,
 		service.Path,
@@ -170,10 +173,20 @@ func actionNew(c *cli.Context) error {
 		return err
 	}
 
+	// Create service package
 	if err := os.MkdirAll(filepath.Join(
 		srcPath,
 		service.Path,
-		runtimePath,
+		serviceFolder,
+	), 0744); err != nil {
+		return err
+	}
+
+	// Create methods package
+	if err := os.MkdirAll(filepath.Join(
+		srcPath,
+		service.Path,
+		methodFolder,
 	), 0744); err != nil {
 		return err
 	}
@@ -181,6 +194,7 @@ func actionNew(c *cli.Context) error {
 	if err := writeTemplateToFile(filepath.Join(
 		srcPath,
 		service.Path,
+		serviceFolder,
 		serviceFile,
 	), serviceTemplate, service); err != nil {
 		return err
@@ -190,6 +204,7 @@ func actionNew(c *cli.Context) error {
 		if err := writeTemplateToFile(filepath.Join(
 			srcPath,
 			service.Path,
+			methodFolder,
 			strings.ToLower(method.Name)+".go",
 		), methodTemplate, method); err != nil {
 			return err
@@ -199,7 +214,6 @@ func actionNew(c *cli.Context) error {
 	if err := writeTemplateToFile(filepath.Join(
 		srcPath,
 		service.Path,
-		runtimePath,
 		runtimeFile,
 	), runtimeTemplate, service); err != nil {
 		return err
@@ -207,12 +221,10 @@ func actionNew(c *cli.Context) error {
 
 	if err := copyFile(filepath.Join(
 		templatePath,
-		runtimePath,
 		dockerFile,
 	), filepath.Join(
 		srcPath,
 		service.Path,
-		runtimePath,
 		dockerFile,
 	)); err != nil {
 		return err
@@ -250,7 +262,7 @@ func actionAbout(c *cli.Context) error {
 
 	// Store generated about file
 	aboutTemplate := template.Must(template.ParseFiles(
-		filepath.Join(templatePath, aboutFile),
+		filepath.Join(templatePath, aboutFolder, aboutFile),
 	))
 
 	// Create autogen directory
