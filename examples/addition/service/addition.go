@@ -1,4 +1,4 @@
-package addition
+package service
 
 import (
 	"github.com/lnsp/hive/lib/service"
@@ -15,7 +15,7 @@ type AddResponse struct {
 var Add service.Method
 var Service service.Service
 
-func addHandler(request interface{}) (interface{}, error) {
+func addHandler(request interface{}) (interface{}, *service.Error) {
 	req := request.(*AddRequest)
 	return &AddResponse{
 		Result: req.A + req.B,
@@ -25,6 +25,5 @@ func addHandler(request interface{}) (interface{}, error) {
 func init() {
 	Service = service.New("addition", "0.1.0")
 	Add = service.NewMethod("add", AddRequest{}, AddResponse{}, addHandler)
-
 	Service.Register(Add)
 }

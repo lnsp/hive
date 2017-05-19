@@ -1,4 +1,4 @@
-package helloworld
+package service
 
 import (
 	"github.com/lnsp/hive/lib/service"
@@ -15,7 +15,7 @@ type HelloResponse struct {
 var SayHello service.Method
 var Service service.Service
 
-func helloHandler(request interface{}) (interface{}, error) {
+func helloHandler(request interface{}) (interface{}, *service.Error) {
 	helloRequest := request.(*HelloRequest)
 	helloResponse := HelloResponse{
 		Text: "Hello, " + helloRequest.Name + "!",

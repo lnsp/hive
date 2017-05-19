@@ -1,10 +1,10 @@
-package randomcalc
+package service
 
 import (
 	"math/rand"
 
-	"github.com/lnsp/hive/examples/addition"
-	"github.com/lnsp/hive/examples/subtraction"
+	addition "github.com/lnsp/hive/examples/addition/service"
+	subtraction "github.com/lnsp/hive/examples/subtraction/service"
 	"github.com/lnsp/hive/lib/discovery"
 	"github.com/lnsp/hive/lib/service"
 )
@@ -21,7 +21,7 @@ var Discovery discovery.Discovery
 var Calculate service.Method
 var Service service.Service
 
-func calculateHandler(request interface{}) (interface{}, error) {
+func calculateHandler(request interface{}) (interface{}, *service.Error) {
 	req := request.(*CalculateRequest)
 
 	response := CalculateResponse{}

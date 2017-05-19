@@ -1,4 +1,4 @@
-package subtraction
+package service
 
 import (
 	"github.com/lnsp/hive/lib/service"
@@ -15,7 +15,7 @@ type SubtractResponse struct {
 var Subtract service.Method
 var Service service.Service
 
-func subtractHandler(request interface{}) (interface{}, error) {
+func subtractHandler(request interface{}) (interface{}, *service.Error) {
 	req := request.(*SubtractRequest)
 	return &SubtractResponse{
 		Result: req.A - req.B,
