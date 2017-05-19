@@ -43,6 +43,10 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s [%d]: %s", e.ID, e.Status, e.Text)
 }
 
+func (e *Error) Normalize() error {
+	return fmt.Errorf("%s", e.Text)
+}
+
 // Instance generates a new instance encapsuling the reference error.
 func (e *Error) Instance(err error) *Error {
 	return &Error{ID: e.ID, Text: err.Error(), Status: e.Status}
