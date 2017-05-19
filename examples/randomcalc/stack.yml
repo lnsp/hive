@@ -1,0 +1,28 @@
+version: '3.2'
+services:
+  addition:
+    image: hive/examples/addition
+    networks:
+      internal:
+        aliases:
+          - addition
+  subtraction:
+    image: hive/examples/subtraction
+    networks:
+      internal:
+        aliases:
+          - subtraction
+  randomcalc:
+    image: hive/examples/randomcalc
+    networks:
+      internal:
+        aliases:
+          - randomcalc
+    ports:
+    - target: 80
+      published: 80
+      protocol: tcp
+      mode: ingress
+networks:
+  internal:
+    driver: overlay
