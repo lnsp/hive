@@ -14,7 +14,7 @@ func (discovery Discovery) Retrieve(name string) service.Service {
 	return discovery.services[name]
 }
 
-func (discovery Discovery) Send(name string, method string, request interface{}) (interface{}, error) {
+func (discovery Discovery) Send(name string, method string, request interface{}) (interface{}, *service.Error) {
 	return discovery.services[name].Send(method, request)
 }
 
