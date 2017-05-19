@@ -22,7 +22,7 @@ const (
 	// ErrRequest is a internal request error.
 	ErrRequest  = "hive.internal.request"
 	jsonMIME    = "application/json"
-	queryFormat = "%s://%s:%s/%s"
+	queryFormat = "%s://%s%s/%s"
 )
 
 var log = logrus.New()
