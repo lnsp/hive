@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"time"
 
+	"strings"
+
 	"github.com/Sirupsen/logrus"
 )
 
@@ -87,10 +89,10 @@ func New(name, version string) Service {
 	}
 }
 
-func sendError(w http.ResponseWriter, message string, status int) {
+func sendError(w http.ResponseWriter, e string, status int) {
 	json, err := json.Marshal(struct {
 		Error string
-	}{Error: message})
+	}{e})
 	w.WriteHeader(status)
 	_, err = w.Write(json)
 	if err != nil {
@@ -111,6 +113,10 @@ func (service Service) LogDebug(args ...interface{}) {
 // LogError logs an message of log level Error.
 func (service Service) LogError(args ...interface{}) {
 	log.Error(args...)
+}
+
+func IsError(err error, code string) bool {
+	return strings.Contains(err.Error(), code)
 }
 
 // Send a request to the service.
@@ -141,13 +147,11 @@ func (service Service) Send(name string, request interface{}) (interface{}, erro
 		return nil, errors.New("failed service request: " + err.Error())
 	}
 	if resp.StatusCode != http.StatusOK {
-		decoded := struct {
-			Error string
-		}{}
-		if err := json.Unmarshal(body, &decoded); err != nil {
-			return nil, errors.New("bad request status: " + resp.Status)
+		errBox := struct{ Error string }{}
+		if err := json.Unmarshal(body, &errBox); err != nil {
+			return nil, errors.New("bad json error: " + resp.Status)
 		}
-		return nil, errors.New("bad request: " + decoded.Error)
+		return nil, errors.New("handle error: " + errBox.Error)
 	}
 	response := reflect.New(method.GetResponseType()).Interface()
 	err = json.Unmarshal(body, response)
