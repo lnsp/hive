@@ -49,6 +49,9 @@ func (e *Error) Normalize() error {
 
 // Instance generates a new instance encapsuling the reference error.
 func (e *Error) Instance(err error) *Error {
+	if err == nil {
+		return &Error{ID: e.ID, Text: e.Text, Status: e.Status}
+	}
 	return &Error{ID: e.ID, Text: err.Error(), Status: e.Status}
 }
 
@@ -138,10 +141,21 @@ func (service Service) RegisterError(e Error) {
 	service.KnownErrors[e.ID] = e
 }
 
-// Throw generates a new error instance.
+// Match generates a new user-friendly error instance.
+func (service Service) Match(err *Error) *Error {
+	e, ok := service.KnownErrors[err.ID]
+	if !ok {
+		service.LogError("Unknown error type", err)
+		e = service.KnownErrors[ErrGeneric]
+	}
+	return e.Instance(nil)
+}
+
+// Throw generates a new debug-friendly error instance.
 func (service Service) Throw(id string, err error) *Error {
 	e, ok := service.KnownErrors[id]
 	if !ok {
+		service.LogError("Unknown error type", err)
 		e = service.KnownErrors[ErrGeneric]
 	}
 	return e.Instance(err)
