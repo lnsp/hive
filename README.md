@@ -1,11 +1,8 @@
-# Hive
-**Simple and fast** microservice toolkit.
-
-Made for **modern software architectures**.
-
-Works insanely well with the **new Docker swarm-mode (v1.12+)**.
-
-Easy-to-use **CLI assistant** for maximum productivity.
+<p align="center">
+<img src="https://raw.githubusercontent.com/lnsp/hive/master/hive-logo.png" alt="hive">
+</p>
+<hr>
+hive is a simple and fast microservice toolkit built on top of HTTP and JSON. It was created in mind for modern software architectures and infrastructure, simple cross-language interaction and orchestrators like Kubernetes and Docker Swarm.
 
 ## Getting started
 ```bash
@@ -28,11 +25,3 @@ $ cd $GOPATH/src/github.com/cyberdyne/skynet/runtime
 $ docker build -t skynet:latest .
 $ docker service create --name takeover --network=backend --replicas=1000 skynet:latest
 ```
-## License
-Copyright 2017 Lennart Espe
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
