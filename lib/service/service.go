@@ -127,9 +127,9 @@ func New(name, version string) Service {
 
 func makeDefaultErrorMap() map[string]Error {
 	return map[string]Error{
-		"hive.internal.generic": Error{ID: "hive.internal.generic", Status: http.StatusInternalServerError},
-		"hive.internal.request": Error{ID: "hive.internal.request", Status: http.StatusBadRequest},
-		"hive.internal.network": Error{ID: "hive.internal.network", Status: http.StatusInternalServerError},
+		ErrGeneric: Error{ID: ErrGeneric, Status: http.StatusInternalServerError},
+		ErrRequest: Error{ID: ErrRequest, Status: http.StatusBadRequest},
+		ErrNetwork: Error{ID: ErrNetwork, Status: http.StatusInternalServerError},
 	}
 }
 
