@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,8 +17,6 @@ import (
 
 const (
 	maxLineLength = 1024
-	autogenPath   = "/tmp/hive/autogen"
-	templatePath  = "/tmp/hive/templates"
 	templateRepo  = "https://github.com/lnsp/hive-templates"
 	updateRepo    = "pull"
 	copyRepo      = "clone"
@@ -32,6 +31,11 @@ const (
 	dockerFile    = "Dockerfile"
 	aboutFolder   = "about"
 	aboutFile     = "about.go"
+)
+
+var (
+	autogenPath, _  = ioutil.TempDir("", "hive-autogen")
+	templatePath, _ = ioutil.TempDir("", "hive-template")
 )
 
 var srcPath = filepath.Join(os.Getenv("GOPATH"), "src")
@@ -56,28 +60,17 @@ type serviceHeader struct {
 }
 
 func updateTemplates() error {
-	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
-		err = os.MkdirAll(templatePath, 0744)
-		if err != nil {
-			return err
-		}
-		// Download templates
-		cloneCmd := exec.Command(gitPath, copyRepo, templateRepo, templatePath)
-		cloneCmd.Stderr = os.Stderr
-		err = cloneCmd.Run()
-		if err != nil {
-			return err
-		}
-	}
-
-	updateCmd := exec.Command(gitPath, updateRepo)
-	updateCmd.Dir = templatePath
-	updateCmd.Stderr = os.Stderr
-	err := updateCmd.Run()
+	err := os.MkdirAll(templatePath, 0744)
 	if err != nil {
 		return err
 	}
-
+	// Download template
+	cloneCmd := exec.Command(gitPath, copyRepo, templateRepo, templatePath)
+	cloneCmd.Stdout = os.Stdout
+	err = cloneCmd.Run()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -134,6 +127,7 @@ func actionNew(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
+		methodName = strings.Title(methodName)
 
 		service.Methods = append(service.Methods, methodHeader{
 			Name:    methodName,

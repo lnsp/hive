@@ -6,7 +6,7 @@ hive is a simple and fast microservice toolkit built on top of HTTP and JSON. It
 
 ## Getting started
 ```bash
-$ go get github.com/lnsp/hive/cmd/hive
+$ go get github.com/lnsp/hive
 $ hive new
 Enter service name: skynet
 Enter service path: github.com/cyberdyne/skynet
