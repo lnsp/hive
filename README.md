@@ -1,5 +1,7 @@
 # ![hive](https://raw.githubusercontent.com/lnsp/hive/master/docs/logo.png)
 
+> This project is not actively maintained anymore.
+
 hive is a simple and fast microservice toolkit built on top of HTTP and JSON. It was created in mind for modern software architectures and infrastructure, simple cross-language interaction and orchestrators like Kubernetes and Docker Swarm.
 
 ## Getting started
