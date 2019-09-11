@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli"
 )
 
 const (
